@@ -1,0 +1,13 @@
+# Nunca subir: contiene la API key de Anthropic en texto plano
+.env
+
+# Sesion de WhatsApp - si se filtra, permite secuestrar la sesion sin escanear QR
+.wwebjs_auth/
+.wwebjs_cache/
+
+# Dependencias - se regeneran con npm install
+node_modules/
+
+# Logs
+*.log
+npm-debug.log*
