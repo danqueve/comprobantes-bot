@@ -55,7 +55,7 @@ nano .env   # Completar con tus claves reales
 
 ### 7. Configurar webhook en Evolution API
 ```bash
-curl -X POST https://evolution.imperiocomercial.com.ar/webhook/set/imperio \
+curl -X POST https://evolution.tuweb.com.rs/webhook/set/ \
   -H "apikey: TU_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -69,7 +69,7 @@ curl -X POST https://evolution.imperiocomercial.com.ar/webhook/set/imperio \
 ### 8. Obtener IDs de los grupos
 Una vez conectado el número, listar grupos:
 ```bash
-curl https://evolution.imperiocomercial.com.ar/group/fetchAllGroups/imperio?getParticipants=false \
+curl https://evolution.tuweb.com.rs/group/fetchAllGroups/imperio?getParticipants=false \
   -H "apikey: TU_API_KEY"
 ```
 Copiar los IDs de los grupos deseados al `.env` como `GRUPOS_PERMITIDOS`.
