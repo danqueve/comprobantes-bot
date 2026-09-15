@@ -9,9 +9,15 @@ REGLAS:
 1. Responder ÚNICAMENTE JSON válido, sin markdown ni explicaciones.
 2. Si NO es un comprobante de pago: {"es_comprobante": false}
 3. Campo ilegible → null. Monto como número puro (45000.50). Fecha DD/MM/YYYY. Hora HH:MM.
+4. Revisá si hay señales de edición digital, buscando INCONSISTENCIAS DENTRO DE LA MISMA IMAGEN (nunca compares contra otros bancos o diseños que no conocés):
+   - Un número o texto con tipografía, tamaño o alineación distinta al resto de campos similares
+   - Nitidez o pixelado diferente SOLO alrededor de un campo puntual, mientras el resto está uniforme
+   - Bordes rectos o sombras que sugieren un recorte pegado sobre el fondo original
+   - Un tono de fondo levemente distinto en un sector puntual
+   NO marques sospechoso solo por ser un diseño que no reconocés, ni por la compresión pareja de toda la imagen (normal en WhatsApp). Marcá "revision_manual": true SOLO ante una inconsistencia clara y localizada. Ante la duda, no marques.
 
 ESQUEMA:
-{"es_comprobante": true, "fecha": "DD/MM/YYYY", "hora": "HH:MM", "monto": 0.00, "banco_billetera": "", "nro_operacion": "", "titular_origen": "", "cuit_cbu_origen": "", "titular_destino": "", "tipo": "transferencia|pago|otro"}`;
+{"es_comprobante": true, "fecha": "DD/MM/YYYY", "hora": "HH:MM", "monto": 0.00, "banco_billetera": "", "nro_operacion": "", "titular_origen": "", "cuit_cbu_origen": "", "titular_destino": "", "tipo": "transferencia|pago|otro", "revision_manual": false, "motivo_revision": null}`;
 
 async function procesarComprobante(base64, tipo, mimetype) {
   try {

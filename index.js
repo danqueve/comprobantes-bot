@@ -32,6 +32,17 @@ function parsearMonto(monto) {
   return isNaN(num) ? null : num;
 }
 
+const FRASES_AGRADECIMIENTO = [
+  '¡Excelente gestión! 💪',
+  'Seguís haciendo un gran trabajo 👏',
+  '¡Gracias por tu buena onda! 🙌',
+  'Todo en orden, ¡seguí así! 🚀',
+  '¡Buen laburo! 😊',
+];
+function fraseAleatoria() {
+  return FRASES_AGRADECIMIENTO[Math.floor(Math.random() * FRASES_AGRADECIMIENTO.length)];
+}
+
 client.on('qr', (qr) => {
   console.log('\n📱 Escaneá este QR desde WhatsApp → Dispositivos vinculados:\n');
   qrcode.generate(qr, { small: true });
@@ -106,6 +117,9 @@ client.on('message', async (msg) => {
       : (datos.monto ?? 'sin dato');
 
     console.log(`[COMPROBANTE] $${montoTexto} | ${datos.banco_billetera} | Op: ${datos.nro_operacion}`);
+    if (datos.revision_manual) {
+      console.log(`[REVISAR] Posible edicion: ${datos.motivo_revision || 'sin detalle'}`);
+    }
 
     try {
       const resultado = await appendSheets({
@@ -120,6 +134,8 @@ client.on('message', async (msg) => {
         nro_operacion:     datos.nro_operacion || '',
         titular_origen:    datos.titular_origen || '',
         cuit_cbu:          datos.cuit_cbu_origen || '',
+        revision_manual:   !!datos.revision_manual,
+        motivo_revision:   datos.motivo_revision || '',
         estado:            'ok',
         msg_id:            msg.id._serialized,
       });
@@ -137,7 +153,13 @@ client.on('message', async (msg) => {
           `Verificar antes de acreditar el pago.`
         );
       } else {
-        await msg.reply(`✅ *Comprobante registrado*\n💰 $${montoTexto}\n🏦 ${datos.banco_billetera}\n🔢 Op: ${datos.nro_operacion}`);
+        await msg.reply(
+          `✅ *Comprobante registrado*\n` +
+          `Gracias ${remitente}, ${fraseAleatoria()}\n` +
+          `💰 $${montoTexto}\n` +
+          `🏦 ${datos.banco_billetera}\n` +
+          `🔢 Op: ${datos.nro_operacion}`
+        );
       }
     } catch (sheetsErr) {
       console.error('[ERROR SHEETS]', sheetsErr.message || sheetsErr);
