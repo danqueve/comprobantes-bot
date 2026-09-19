@@ -15,6 +15,12 @@ const NOMBRES_GRUPOS = process.env.NOMBRES_GRUPOS
 const NOMBRE_POR_GRUPO = {};
 GRUPOS_PERMITIDOS.forEach((id, i) => { NOMBRE_POR_GRUPO[id] = NOMBRES_GRUPOS[i] || id; });
 
+// Guarda temporal de mensajes ya procesados en esta sesión, para
+// no volver a llamar a Claude si WhatsApp reenvía el mismo evento
+// (pasa tras reconexiones). No sobrevive a un reinicio del bot —
+// el respaldo real contra eso vive en el índice de Google Sheets.
+const procesados = new Set();
+
 const client = new Client({
   authStrategy: new LocalAuth({ dataPath: '/opt/comprobantes-bot/.wwebjs_auth' }),
   webVersionCache: { type: 'none' },
@@ -69,6 +75,18 @@ client.on('message', async (msg) => {
   }
 
   if (!msg.hasMedia) return;
+
+  const msgId = (msg.id && msg.id._serialized) ? msg.id._serialized : null;
+  if (msgId) {
+    if (procesados.has(msgId)) {
+      console.log(`[EVENTO REPETIDO] Ya se procesó este mensaje en esta sesión: ${msgId}`);
+      return;
+    }
+    procesados.add(msgId);
+    if (procesados.size > 2000) procesados.clear();
+  } else {
+    console.log('[AVISO] Mensaje sin ID valido - se procesa igual, sin la guarda de eventos repetidos.');
+  }
 
   let remitente = msg.author || msg.from;
   const nombreGrupo = NOMBRE_POR_GRUPO[from];
@@ -137,7 +155,7 @@ client.on('message', async (msg) => {
         revision_manual:   !!datos.revision_manual,
         motivo_revision:   datos.motivo_revision || '',
         estado:            'ok',
-        msg_id:            msg.id._serialized,
+        msg_id:            msgId || '',
       });
       console.log('[SHEETS] Fila agregada ✅');
 
@@ -153,6 +171,9 @@ client.on('message', async (msg) => {
           `Verificar antes de acreditar el pago.`
         );
       } else {
+        if (resultado && resultado.reprocesado) {
+          console.log(`[REPROCESO] Ya estaba registrado (fila ${resultado.fila}), no se duplica la fila.`);
+        }
         await msg.reply(
           `✅ *Comprobante registrado*\n` +
           `Gracias ${remitente}, ${fraseAleatoria()}\n` +
