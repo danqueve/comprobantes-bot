@@ -86,7 +86,17 @@ async function procesarComprobante(base64, tipo, mimetype) {
     );
 
     const texto = response.data.content[0]?.text || '';
-    const datos = limpiarOrigen(JSON.parse(texto.replace(/```json|```/g, '').trim()));
+
+    // Limpieza básica de markdown, y fallback de seguridad: si Claude
+    // agrega alguna palabra de más antes o después, extraemos solo lo
+    // que está entre la primera '{' y la última '}'.
+    let limpio = texto.replace(/```json|```/g, '').trim();
+    const inicio = limpio.indexOf('{');
+    const fin = limpio.lastIndexOf('}');
+    if (inicio !== -1 && fin !== -1) {
+      limpio = limpio.substring(inicio, fin + 1);
+    }
+    const datos = limpiarOrigen(JSON.parse(limpio));
 
     const uso = response.data.usage;
     console.log(`[CLAUDE] Tokens in:${uso.input_tokens} out:${uso.output_tokens} cache:${uso.cache_read_input_tokens || 0}`);
