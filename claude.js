@@ -21,6 +21,7 @@ CAMPOS DE QUIÉN PAGÓ Y QUIÉN COBRA (importante, no los confundas):
 - "cuit_cbu_origen": el CUIT/CUIL de 11 dígitos de quien envió, solo dígitos (ej: 27282236333). Si el comprobante no muestra el CUIT/CUIL del origen, poné el CBU/CVU o alias del origen. Si no muestra NADA del origen → null.
 - "titular_destino": nombre de quien RECIBE.
 - Quien recibe casi siempre es "Imperio Comercial SAS" (CUIT 30-71907246-8, Banco Macro, CBU 2850143330094248924171). Ese nombre, ese CUIT y ese CBU NUNCA van en los campos de origen.
+- REGLA CLAVE: como quien cobra es siempre Imperio Comercial, si el comprobante muestra UNA sola persona o titular (con su nombre y CUIT/CUIL) y no es Imperio Comercial, esa persona es el ORIGEN, aunque la etiqueta diga solo "Titular" o no haya bloques de origen y destino. Ejemplo: una pantalla "Detalle del movimiento" con "+ 8.000,00", "Titular: Maria Laura Quintero" y "CUIT/CUIL: 27-30498142-9" → titular_origen "Maria Laura Quintero", cuit_cbu_origen "27304981429".
 - Algunos comprobantes muestran SOLO al destinatario y nada de quien envió (por ejemplo BNA+ y PREX). En ese caso "titular_origen" y "cuit_cbu_origen" van null. No copies el destinatario al origen. Es preferible null a un dato inventado o equivocado.
 
 DÓNDE ESTÁ EL NÚMERO DE OPERACIÓN ("nro_operacion"), según el banco:
