@@ -16,8 +16,48 @@ REGLAS:
    - Un tono de fondo levemente distinto en un sector puntual
    NO marques sospechoso solo por ser un diseño que no reconocés, ni por la compresión pareja de toda la imagen (normal en WhatsApp). Marcá "revision_manual": true SOLO ante una inconsistencia clara y localizada. Ante la duda, no marques.
 
+CAMPOS DE QUIÉN PAGÓ Y QUIÉN COBRA (importante, no los confundas):
+- "titular_origen": nombre de quien ENVIÓ el dinero (el ordenante). Aparece como "Origen", "De", "Cuenta origen", "Titular" dentro del bloque de origen, o el primer bloque de "Origen y destino".
+- "cuit_cbu_origen": el CUIT/CUIL de 11 dígitos de quien envió, solo dígitos (ej: 27282236333). Si el comprobante no muestra el CUIT/CUIL del origen, poné el CBU/CVU o alias del origen. Si no muestra NADA del origen → null.
+- "titular_destino": nombre de quien RECIBE.
+- Quien recibe casi siempre es "Imperio Comercial SAS" (CUIT 30-71907246-8, Banco Macro, CBU 2850143330094248924171). Ese nombre, ese CUIT y ese CBU NUNCA van en los campos de origen.
+- Algunos comprobantes muestran SOLO al destinatario y nada de quien envió (por ejemplo BNA+ y PREX). En ese caso "titular_origen" y "cuit_cbu_origen" van null. No copies el destinatario al origen. Es preferible null a un dato inventado o equivocado.
+
+DÓNDE ESTÁ EL NÚMERO DE OPERACIÓN ("nro_operacion"), según el banco:
+- Mercado Pago: "N.º de operación de Mercado Pago" (no el "Código de identificación").
+- BNA+: "Número de transacción".
+- PREX: "COELSA ID".
+- Naranja X: "Código de transacción".
+- Otros bancos: el número, código o ID de la operación o transacción. Si no hay ninguno, null.
+
 ESQUEMA:
 {"es_comprobante": true, "fecha": "DD/MM/YYYY", "hora": "HH:MM", "monto": 0.00, "banco_billetera": "", "nro_operacion": "", "titular_origen": "", "cuit_cbu_origen": "", "titular_destino": "", "tipo": "transferencia|pago|otro", "revision_manual": false, "motivo_revision": null}`;
+
+// Datos de Imperio Comercial: es quien COBRA, nunca quien pagó
+const CUIT_PROPIO = '30719072468';
+const CBU_PROPIO = '2850143330094248924171';
+
+/**
+ * Red de seguridad: aunque la lectura se equivoque, el destinatario (Imperio Comercial)
+ * no puede quedar como origen del pago.
+ */
+function limpiarOrigen(datos) {
+  if (!datos || typeof datos !== 'object') return datos;
+
+  if (datos.cuit_cbu_origen) {
+    let t = String(datos.cuit_cbu_origen);
+    t = t.replace(/30-?71907246-?8/g, ' ').replace(new RegExp(CBU_PROPIO, 'g'), ' ');
+    t = t.replace(/\s+/g, ' ').replace(/^[\s,;/|-]+|[\s,;/|-]+$/g, '');
+    datos.cuit_cbu_origen = /\d/.test(t) || /[a-z]/i.test(t.replace(/\b(cbu|cvu|cuit|cuil|alias)\b/gi, '')) ? t : null;
+  }
+
+  const normal = (x) => String(x || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  const origen = normal(datos.titular_origen);
+  if (origen && (/imperio comercial/.test(origen) || origen === normal(datos.titular_destino))) {
+    datos.titular_origen = null;
+  }
+  return datos;
+}
 
 async function procesarComprobante(base64, tipo, mimetype) {
   try {
@@ -46,7 +86,7 @@ async function procesarComprobante(base64, tipo, mimetype) {
     );
 
     const texto = response.data.content[0]?.text || '';
-    const datos = JSON.parse(texto.replace(/```json|```/g, '').trim());
+    const datos = limpiarOrigen(JSON.parse(texto.replace(/```json|```/g, '').trim()));
 
     const uso = response.data.usage;
     console.log(`[CLAUDE] Tokens in:${uso.input_tokens} out:${uso.output_tokens} cache:${uso.cache_read_input_tokens || 0}`);
@@ -58,4 +98,4 @@ async function procesarComprobante(base64, tipo, mimetype) {
   }
 }
 
-module.exports = { procesarComprobante };
+module.exports = { procesarComprobante, limpiarOrigen };
