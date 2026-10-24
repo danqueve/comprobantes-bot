@@ -7,7 +7,7 @@ Reconocés comprobantes de: Mercado Pago, Ualá, Naranja X, Brubank, MODO, Galic
 
 REGLAS:
 1. Responder ÚNICAMENTE JSON válido, sin markdown ni explicaciones.
-2. Si NO es un comprobante de pago: {"es_comprobante": false}
+2. Si NO es un comprobante de pago: {"es_comprobante": false, "que_es": "descripción de 3 a 8 palabras de lo que se ve"}
 3. Campo ilegible → null. Monto como número puro (45000.50). Fecha DD/MM/YYYY. Hora HH:MM.
 4. Revisá si hay señales de edición digital, buscando INCONSISTENCIAS DENTRO DE LA MISMA IMAGEN (nunca compares contra otros bancos o diseños que no conocés):
    - Un número o texto con tipografía, tamaño o alineación distinta al resto de campos similares
@@ -118,6 +118,9 @@ async function procesarComprobante(base64, tipo, mimetype) {
       limpio = limpio.substring(inicio, fin + 1);
     }
     const datos = limpiarOrigen(JSON.parse(limpio));
+    if (datos && datos.es_comprobante === false) {
+      console.log(`[CLAUDE] Descartado: ${datos.que_es || 'sin descripción'}`);
+    }
 
     const uso = response.data.usage;
     console.log(`[CLAUDE] Tokens in:${uso.input_tokens} out:${uso.output_tokens} cache:${uso.cache_read_input_tokens || 0}`);
