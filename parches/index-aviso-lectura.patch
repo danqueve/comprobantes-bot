@@ -1,0 +1,19 @@
+diff --git a/index.js b/index.js
+index 1c54dc4..2daec00 100644
+--- a/index.js
++++ b/index.js
+@@ -124,6 +124,14 @@ client.on('message', async (msg) => {
+     console.log(`[NUEVO] ${esPdf ? 'PDF' : 'Imagen'} de ${remitente} en "${nombreGrupo}"`);
+ 
+     const datos = await procesarComprobante(media.data, esPdf ? 'pdf' : 'image', mime);
++    if (datos && datos.error_lectura) {
++      // Falla del servicio de lectura (no es lo mismo que "no es un comprobante"): se avisa para que lo reenvíen
++      console.log(`[ERROR LECTURA] No se pudo leer el comprobante de ${remitente} en "${nombreGrupo}"`);
++      try {
++        await msg.reply('⚠️ *No pude leer este comprobante* (falla momentánea del servicio). Reenviá la imagen en unos minutos.');
++      } catch (e) {}
++      return;
++    }
+     if (!datos || !datos.es_comprobante) {
+       console.log(`[IGNORADO] No es un comprobante (${remitente})`);
+       return;
