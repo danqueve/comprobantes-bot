@@ -60,6 +60,26 @@ function limpiarOrigen(datos) {
   return datos;
 }
 
+const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * Las caídas pasajeras del servicio (503, 529 sobrecargado, 429 límite, cortes de red) no deben
+ * hacer perder el comprobante: se reintenta hasta 3 veces esperando un poco más cada vez.
+ */
+async function postConReintentos(url, cuerpo, opciones, intentos = 3) {
+  for (let intento = 1; ; intento++) {
+    try {
+      return await axios.post(url, cuerpo, opciones);
+    } catch (err) {
+      const status = err.response?.status;
+      const pasajero = !status || status === 429 || status >= 500;
+      if (!pasajero || intento >= intentos) throw err;
+      console.log(`[CLAUDE] Intento ${intento} falló (${status || err.message}), reintentando en ${intento * 4}s...`);
+      await esperar(intento * 4000);
+    }
+  }
+}
+
 async function procesarComprobante(base64, tipo, mimetype) {
   try {
     const content = tipo === 'pdf'
@@ -68,7 +88,7 @@ async function procesarComprobante(base64, tipo, mimetype) {
       : [{ type: 'image', source: { type: 'base64', media_type: mimetype || 'image/jpeg', data: base64 } },
          { type: 'text', text: 'Extraé los datos de este comprobante.' }];
 
-    const response = await axios.post(
+    const response = await postConReintentos(
       'https://api.anthropic.com/v1/messages',
       {
         model: 'claude-haiku-4-5',
@@ -105,7 +125,8 @@ async function procesarComprobante(base64, tipo, mimetype) {
     return datos;
   } catch (err) {
     console.error('[ERROR CLAUDE]', err.response?.data ? JSON.stringify(err.response.data) : err.message);
-    return null;
+    // No es lo mismo que "no es un comprobante": quien llama puede avisar que hay que reenviarlo
+    return { es_comprobante: false, error_lectura: true };
   }
 }
 
